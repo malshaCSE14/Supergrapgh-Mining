@@ -36,7 +36,16 @@ def kmeans(vehicle_density,k):
     vehicle_density_list = list(vehicle_density.values())
     road_segments = list(vehicle_density.keys())
     x = np.array(vehicle_density_list)
-    km = KMeans(n_clusters=k)
+
+    ndarray = [] # centroid values list
+    # gathering centroid values; i = (nr/k)*j
+    for j in range(1,k+1):
+        i = int((len(vehicle_density)/k))*j
+        vehicle_density_values = list(vehicle_density.values())
+        ndarray.append([vehicle_density_values[i]])
+    ndarr = np.array(ndarray, np.float16)
+
+    km = KMeans(n_clusters=k, init=ndarr)
     km.fit(x.reshape(-1, 1))
 
     dict_clusters = {}
@@ -144,7 +153,16 @@ def clustering_gain(cluster):
     return 1
 def ratio_error_sum(cluster):
     return 1
-def mcg(c):
+def mcg(c, k, feature_values):
+    for cluster_index in range(k):
+        print(c[cluster_index])
+        cq = c[cluster_index]
+        u_q = []
+        feature_values_of_cq: []
+        # assign feature values by looking at the indexes
+        for i in range(len(feature_values_of_cq)):
+            u_q_p = (1/len(cq))*2 # complete this
+            u_q.append(u_q_p)
     nd= len(c)
     mcg =0
     global_means = []
@@ -160,13 +178,14 @@ vehicle_density = getVehicleDensities()
 for k in range(2,len(vehicle_density)):
     cluster_k = kmeans(vehicle_density, k)
     # print(cluster_k)
-    mcg_ck = mcg(cluster_k)
+    mcg_ck = mcg(vehicle_density ,k, cluster_k)
     if mcg_ck >= threshold:
         clustering_config_vectors[k] = cluster_k
 # print(clustering_config_vectors, 'clustering_config_vectors')
 optimal_config_vector = []
 optimal_cluster = []
 Ag = random_adjacency(153)
+print(Ag)
 min_connected_components = connected_component_count(clustering_config_vectors[2], Ag)
 
 for clusterId in range(3, max(clustering_config_vectors.keys())+1):
@@ -178,3 +197,4 @@ for clusterId in range(3, max(clustering_config_vectors.keys())+1):
         optimal_config_vector = clustering_config_vectors[clusterId]
         # print(optimal_config_vector, "each optimal_config_vector")
 print(optimal_config_vector, "supernodes")
+print("number of supernodes", len(optimal_config_vector))
