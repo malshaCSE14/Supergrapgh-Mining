@@ -1,6 +1,8 @@
 import operator, csv
 from sklearn.cluster import KMeans
 import numpy as np
+import re
+from itertools import combinations
 class Data(object):
     def __init__(self, name):
         self.__name = name
@@ -74,6 +76,24 @@ def random_adjacency(n):
             if i>=j:
                 pass
     return adjacency
+
+def map(size):
+    file = open("testfile.txt", "r")
+    a= file.read().split('][')
+    numberList = []
+    for i in range(size):
+        numlist = a[i].split(' ')
+        numberLine = []
+        for eachChar in numlist:
+            try:
+                numberLine.append(int(eachChar))
+            except:
+                r = re.findall(r'\d+',eachChar)
+                numberLine.append(int(r[0]))
+        numberList.append(numberLine)
+    return numberList
+    # ab = np.array(numberList)
+    # return  ab
 
 def connected_components(nodes):
     # List of connected components found. The order is random.
@@ -154,25 +174,25 @@ def clustering_gain(cluster):
 def ratio_error_sum(cluster):
     return 1
 def mcg(c, k, feature_values):
-    for cluster_index in range(k):
-        print(c[cluster_index])
-        cq = c[cluster_index]
-        u_q = []
-        feature_values_of_cq: []
-        # assign feature values by looking at the indexes
-        for i in range(len(feature_values_of_cq)):
-            u_q_p = (1/len(cq))*2 # complete this
-            u_q.append(u_q_p)
-    nd= len(c)
-    mcg =0
-    global_means = []
-    for cluster in range(len(c)):
-        global_means.append((1/nd))
-    for cluster in range(len(c)):
-        mcg+=(clustering_gain(cluster)*ratio_error_sum(cluster))
-    return 2
+    # for cluster_index in range(k):
+    #     print(c[cluster_index])
+    #     cq = c[cluster_index]
+    #     u_q = []
+    #     feature_values_of_cq: []
+    #     # assign feature values by looking at the indexes
+    #     for i in range(len(feature_values_of_cq)):
+    #         u_q_p = (1/len(cq))*2 # complete this
+    #         u_q.append(u_q_p)
+    # nd= len(c)
+    # mcg =0
+    # global_means = []
+    # for cluster in range(len(c)):
+    #     global_means.append((1/nd))
+    # for cluster in range(len(c)):
+    #     mcg+=(clustering_gain(cluster)*ratio_error_sum(cluster))
+    return len(feature_values)
 
-threshold = 1
+threshold = 8
 clustering_config_vectors = {}
 vehicle_density = getVehicleDensities()
 for k in range(2,len(vehicle_density)):
@@ -180,21 +200,72 @@ for k in range(2,len(vehicle_density)):
     # print(cluster_k)
     mcg_ck = mcg(vehicle_density ,k, cluster_k)
     if mcg_ck >= threshold:
+        # print("len(cluster_k)", len(cluster_k))
         clustering_config_vectors[k] = cluster_k
 # print(clustering_config_vectors, 'clustering_config_vectors')
 optimal_config_vector = []
 optimal_cluster = []
-Ag = random_adjacency(153)
-print(Ag)
-min_connected_components = connected_component_count(clustering_config_vectors[2], Ag)
-
-for clusterId in range(3, max(clustering_config_vectors.keys())+1):
-    # print(clusterId)
+# Ag = random_adjacency(153)
+# road map with links
+Ag = np.array(map(153))
+# Ag = map(153)
+# file = open("testfile.txt", "r")
+# for i in Ag:
+#     file.write(str(i))
+# file.close()
+# min_connected_components = connected_component_count(clustering_config_vectors[2], Ag)
+min_connected_components = connected_component_count(clustering_config_vectors[threshold], Ag)
+# for clusterId in range(3, max(clustering_config_vectors.keys())+1):
+for clusterId in range(threshold+1, max(clustering_config_vectors.keys())+1):
     connected_components_count = connected_component_count(clustering_config_vectors[clusterId], Ag)
+    # print(min_connected_components)
 
     if min_connected_components>connected_components_count:
         min_connected_components = connected_components_count
         optimal_config_vector = clustering_config_vectors[clusterId]
-        # print(optimal_config_vector, "each optimal_config_vector")
+
+
+        # print(len(optimal_config_vector), "each optimal_config_vector length")
 print(optimal_config_vector, "supernodes")
-print("number of supernodes", len(optimal_config_vector))
+# print("number of supernodes", len(optimal_config_vector))
+# print("vehicle_density" , vehicle_density)
+number_of_clusters = len(optimal_config_vector)
+for cluster_index in range(number_of_clusters):
+    cluster_total = 0
+    for each in optimal_config_vector[cluster_index]:
+        cluster_total += vehicle_density[str(each)]
+    cluster_mean = cluster_total/len(optimal_config_vector[cluster_index])
+    print("cluster mean of supernode", cluster_index, " = ", cluster_mean)
+
+def rSubset(arr, r):
+	return list(combinations(arr, r))
+
+arr = list(optimal_config_vector.keys())
+r = 2
+link_weights = {}
+for eachlink in rSubset(arr, r):
+    link_weights[eachlink] = 0
+
+# print(link_weights)
+for cluster_index in range(number_of_clusters):
+    selected_node_set = optimal_config_vector[cluster_index]
+    # print(selected_node_set)
+    for cluster_index2 in range(number_of_clusters):
+        to_be_compared = optimal_config_vector[cluster_index2]
+        if cluster_index!= cluster_index2:
+            for eachnode in selected_node_set:
+                node1 = int(eachnode)-1
+                for eachothernode in to_be_compared:
+                    node2 = int(eachothernode)-1
+                if Ag[node1][node2] == 1:
+                    # print(eachnode, eachothernode)
+                    l = sorted([int(cluster_index), int(cluster_index2)])
+                    # print(tuple(l))
+                    if tuple(l) in link_weights:
+                        link_weights[tuple(l)] +=1
+                    # link_weights[(int(cluster_index), int(cluster_index2))]+=1
+# link_weights[(0,1)] = 5
+print("link weighs: ", link_weights)
+
+
+
